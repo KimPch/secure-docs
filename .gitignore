@@ -17,3 +17,15 @@ node_modules/
 # Editor/IDE configuration files
 .idea/
 .vscode/
+
+# zsh history and session files
+.zsh_history
+.zsh_sessions/
+
+# Chrome and Postman related files
+Library/Application Support/Google/Chrome/Default/Network Persistent State
+Library/Application Support/Google/Chrome/Default/Preferences
+Library/Application Support/Postman/
+Library/Caches/Google/Chrome/Default/Cache/
+Library/Application Support/Google/Chrome/Default/IndexedDB/
+
