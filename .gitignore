@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# System files (macOS, Linux, Windows)
+.DS_Store
+.env
+.vscode/
+.npm-global/
+.npm/
+
+# Logs and temporary files
+.log
+*.log
+*.bak
+*.swp
+
+# Editor/IDE configuration files
+.idea/
+.vscode/
