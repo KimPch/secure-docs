@@ -1,0 +1,14 @@
+{
+  "name": "secure-docs",
+  "private": true,
+  "workspaces": ["client", "server"],
+  "scripts": {
+    "start": "npm run dev --prefix server",
+    "client": "npm start --prefix client",
+    "server": "npm start --prefix server",
+    "dev": "concurrently \"npm run client\" \"npm run server\""
+  },
+  "dependencies": {
+    "concurrently": "^7.0.0"
+  }
+}
