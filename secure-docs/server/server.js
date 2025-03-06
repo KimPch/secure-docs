@@ -39,7 +39,7 @@ app.get('/upload', (req, res) => {
 
 // Serve `retrieve.html` from `public`
 app.get('/retrieve', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'retrieve.html'));
+  res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
 });
 
 // Multer setup
