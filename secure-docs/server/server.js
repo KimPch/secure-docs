@@ -9,9 +9,15 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+// CORS configuration to allow specific domains
+app.use(cors({
+  origin: ['https://parchment-77d8f11de10a.herokuapp.com', 'https://www.parchment.pro'], // Allow both Heroku and production domains
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 // Middleware
 app.use(express.json());
-app.use(cors());
 
 // Serve static files from the correct 'public' directory (one level up)
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -29,17 +35,17 @@ mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true 
     process.exit(1);
   });
 
-// 🏠 **Serve Upload Page**
+// 🏠 Serve Upload Page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
 });
 
-// 📤 **Serve Upload Page**
+// 📤 Serve Upload Page
 app.get('/upload', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
 });
 
-// 📥 **Serve Retrieve Page**
+// 📥 Serve Retrieve Page
 app.get('/retrieve', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'retrieve.html'));
 });
@@ -71,7 +77,7 @@ const documentSchema = new mongoose.Schema({
 
 const Document = mongoose.model('Document', documentSchema);
 
-// 📤 **Upload a document**
+// 📤 Upload a document
 app.post('/upload', upload.single('document'), async (req, res) => {
   try {
     const { documentId, passcode } = req.body;
@@ -93,7 +99,7 @@ app.post('/upload', upload.single('document'), async (req, res) => {
   }
 });
 
-// 📄 **Retrieve document by passcode**
+// 📄 Retrieve document by passcode
 app.get('/document/:passcode', async (req, res) => {
   try {
     const { passcode } = req.params;
@@ -121,7 +127,7 @@ app.get('/document/:passcode', async (req, res) => {
   }
 });
 
-// 📥 **Download document**
+// 📥 Download document
 app.get('/document/:passcode/download', async (req, res) => {
   try {
     const { passcode } = req.params;
@@ -154,5 +160,3 @@ app.get('/document/:passcode/download', async (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
-
-
