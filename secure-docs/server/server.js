@@ -18,6 +18,7 @@ app.use(cors());
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 myMONGO_URI = 'mongodb+srv://Kate:5201314Kate@securedocscluster.tg3bs.mongodb.net/?retryWrites=true&w=majority&appName=SecureDocsCluster'
+
 // MongoDB Connection
 mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB Connected'))
@@ -25,6 +26,11 @@ mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true 
     console.error('❌ MongoDB Connection Error:', err);
     process.exit(1);
   });
+
+// Root route to serve upload.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'upload.html'));
+});
 
 // Serve `upload.html` from `public`
 app.get('/upload', (req, res) => {
@@ -84,9 +90,6 @@ app.post('/upload', upload.single('document'), async (req, res) => {
     res.status(500).json({ error: '❌ Internal server error' });
   }
 });
-// Document.find().then(r=>{
-//   console.log(r)
-// })
 
 // Retrieve document
 app.get('/document/:passcode', async (req, res) => {
@@ -149,4 +152,5 @@ app.get('/document/:passcode/download', async (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
+
 
