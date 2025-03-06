@@ -16,7 +16,7 @@ app.use(express.json());
 app.use(cors());
 
 // Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, 'public')));
 myMONGO_URI = 'mongodb+srv://Kate:5201314Kate@securedocscluster.tg3bs.mongodb.net/?retryWrites=true&w=majority&appName=SecureDocsCluster'
 
 // MongoDB Connection
