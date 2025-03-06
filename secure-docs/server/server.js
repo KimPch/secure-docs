@@ -6,8 +6,6 @@ const bcrypt = require('bcrypt');
 const path = require('path');
 require('dotenv').config();
 
-console.log('🔍 MONGO_URI:', process.env.MONGO_URI);
-
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -15,11 +13,15 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors());
 
-// Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
-myMONGO_URI = 'mongodb+srv://Kate:5201314Kate@securedocscluster.tg3bs.mongodb.net/?retryWrites=true&w=majority&appName=SecureDocsCluster'
+// Serve static files from the correct 'public' directory (one level up)
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// Debugging logs
+console.log('🔍 MONGO_URI:', process.env.MONGO_URI);
 
 // MongoDB Connection
+const myMONGO_URI = process.env.MONGO_URI || 'your-mongodb-uri-here';
+
 mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => {
@@ -27,26 +29,26 @@ mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true 
     process.exit(1);
   });
 
-// Root route to serve upload.html
+// 🏠 **Serve Upload Page**
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'upload.html'));
-});
-
-// Serve `upload.html` from `public`
-app.get('/upload', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'upload.html'));
-});
-
-// Serve `retrieve.html` from `public`
-app.get('/retrieve', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
 });
 
-// Multer setup
+// 📤 **Serve Upload Page**
+app.get('/upload', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
+});
+
+// 📥 **Serve Retrieve Page**
+app.get('/retrieve', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'retrieve.html'));
+});
+
+// Multer setup for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
       'application/pdf',
@@ -60,7 +62,7 @@ const upload = multer({
   }
 });
 
-// Schema
+// Schema for storing documents
 const documentSchema = new mongoose.Schema({
   documentId: { type: String, unique: true, required: true },
   documentData: Buffer,
@@ -69,7 +71,7 @@ const documentSchema = new mongoose.Schema({
 
 const Document = mongoose.model('Document', documentSchema);
 
-// Upload route
+// 📤 **Upload a document**
 app.post('/upload', upload.single('document'), async (req, res) => {
   try {
     const { documentId, passcode } = req.body;
@@ -91,10 +93,10 @@ app.post('/upload', upload.single('document'), async (req, res) => {
   }
 });
 
-// Retrieve document
+// 📄 **Retrieve document by passcode**
 app.get('/document/:passcode', async (req, res) => {
   try {
-    const passcode = req.params.passcode;
+    const { passcode } = req.params;
     if (!passcode) return res.status(400).json({ error: '❌ Passcode is required' });
 
     const documents = await Document.find();
@@ -119,10 +121,10 @@ app.get('/document/:passcode', async (req, res) => {
   }
 });
 
-// Document download route
+// 📥 **Download document**
 app.get('/document/:passcode/download', async (req, res) => {
   try {
-    const passcode = req.params.passcode;
+    const { passcode } = req.params;
     if (!passcode) return res.status(400).json({ error: '❌ Passcode is required' });
 
     const documents = await Document.find();
@@ -148,7 +150,7 @@ app.get('/document/:passcode/download', async (req, res) => {
   }
 });
 
-// Start server
+// Start the server
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
