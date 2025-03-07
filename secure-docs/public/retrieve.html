@@ -33,8 +33,9 @@
 
             try {
                 // Make a GET request with both User ID and Passcode as query parameters
-                const response = await fetch(`/document?userId=${encodeURIComponent(userId)}&passcode=${encodeURIComponent(passcode)}`);
-                const data = await response.json();
+               const response = await fetch(`https://www.parchment.pro/document?userId=${encodeURIComponent(userId)}&passcode=${encodeURIComponent(passcode)}`);
+
+                  const data = await response.json();
 
                 // Handle the response from the server
                 if (data.error) {
