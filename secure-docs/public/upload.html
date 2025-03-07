@@ -71,3 +71,28 @@
 
 </body>
 </html>
+      
+      const formData = new FormData(this);
+      const apiUrl = window.location.hostname === 'localhost' 
+                      ? 'http://localhost:5000/upload' 
+                      : 'https://www.parchment.pro/upload';
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          body: formData
+        });
+
+        const result = await response.json();
+        console.log("📄 Server Response:", JSON.stringify(result, null, 2));
+
+        alert(result.message || "✅ Upload successful!");
+      } catch (error) {
+        console.error("Error:", error);
+        alert("❌ Failed to upload document.");
+      }
+    });
+  </script>
+
+</body>
+</html>
