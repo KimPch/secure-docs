@@ -1,58 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Retrieve Document</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retrieve Document</title>
 </head>
 <body>
-  <h1>==Retrieve Your Document==</h1>
-  <form id="retrieveForm">
-    <label for="userId">Enter User ID:</label>
-    <input type="text" id="userId" name="userId" required />
-    <br/>
-    <label for="passcode">Enter Passcode:</label>
-    <input type="password" id="passcode" name="passcode" required />
-    <br/>
-    <button type="submit">Retrieve Document</button>
-  </form>
+    <h1>==Retrieve Your Document==</h1>
+    <form id="retrieveForm">
+        <label for="userId">Enter User ID:</label>
+        <input type="text" id="userId" name="userId" required />
+        <br/>
+        <label for="passcode">Enter Passcode:</label>
+        <input type="password" id="passcode" name="passcode" required />
+        <br/>
+        <button type="submit">Retrieve Document</button>
+    </form>
 
-  <!-- Error Message Display -->
-  <div id="errorMessage" style="color: red; display: none;">❌ Invalid User ID or Passcode</div>
+    <!-- Error Message Display -->
+    <div id="errorMessage" style="color: red; display: none;">❌ Invalid User ID or Passcode</div>
 
-  <!-- Download Link Display -->
-  <div id="downloadLink" style="display: none;">
-    <a id="documentLink" href="" download>Download Document</a>
-  </div>
+    <!-- Download Link Display -->
+    <div id="downloadLink" style="display: none;">
+        <a id="documentLink" href="" download>Download Document</a>
+    </div>
 
-  <script>
-    document.getElementById('retrieveForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const userId = document.getElementById('userId').value;
-      const passcode = document.getElementById('passcode').value;
+    <script>
+        document.getElementById('retrieveForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('userId').value;
+            const passcode = document.getElementById('passcode').value;
 
-      try {
-        // Make a GET request to retrieve the document URL with both User ID and Passcode as query parameters
-        const response = await fetch(`/document?userId=${encodeURIComponent(userId)}&passcode=${encodeURIComponent(passcode)}`);
-        const data = await response.json();
+            try {
+                // Make a GET request with both User ID and Passcode as query parameters
+                const response = await fetch(`/document?userId=${encodeURIComponent(userId)}&passcode=${encodeURIComponent(passcode)}`);
+                const data = await response.json();
 
-        if (data.error) {
-          // Show error message if credentials are incorrect
-          document.getElementById('errorMessage').style.display = 'block';
-          document.getElementById('downloadLink').style.display = 'none';
-        } else {
-          // Display the download link if document is found
-          const downloadLink = document.getElementById('documentLink');
-          downloadLink.href = data.downloadUrl; // The server sends the download URL
-          document.getElementById('downloadLink').style.display = 'block';
-          document.getElementById('errorMessage').style.display = 'none';
-        }
-      } catch (error) {
-        console.error('❌ Error:', error);
-        document.getElementById('errorMessage').style.display = 'block';
-        document.getElementById('downloadLink').style.display = 'none';
-      }
-    });
-  </script>
+                // Handle the response from the server
+                if (data.error) {
+                    // Show error message if credentials are incorrect
+                    document.getElementById('errorMessage').style.display = 'block';
+                    document.getElementById('downloadLink').style.display = 'none';
+                } else {
+                    // Display the download link if document is found
+                    const downloadLink = document.getElementById('documentLink');
+                    downloadLink.href = data.downloadUrl; // The server sends the download URL
+                    document.getElementById('downloadLink').style.display = 'block';
+                    document.getElementById('errorMessage').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('downloadLink').style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
+
