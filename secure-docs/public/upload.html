@@ -4,54 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Document</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+      color: #333;
+      text-align: center;
+    }
+    .container {
+      max-width: 400px;
+      margin: 50px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #0056b3;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #0056b3;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #003f80;
+    }
+  </style>
 </head>
 <body>
-  <h1>Upload Your Document</h1>
+  <div class="container">
+    <h1>Upload Your Document</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <div>
+        <label for="document">Choose Document:</label>
+        <input type="file" id="document" name="document" required>
+      </div>
+      <div>
+        <label for="documentId">Document ID:</label>
+        <input type="text" id="documentId" name="documentId" required>
+      </div>
+      <div>
+        <label for="passcode">Enter Passcode:</label>
+        <input type="password" id="passcode" name="passcode" required>
+      </div>
+      <button type="submit">Upload Document</button>
+    </form>
+  </div>
 
-  <form id="uploadForm" enctype="multipart/form-data">
-    <div>
-      <label for="document">Choose Document:</label>
-      <input type="file" id="document" name="document" required>
-    </div>
-
-    <div>
-      <label for="documentId">Document ID:</label>
-      <input type="text" id="documentId" name="documentId" required>
-    </div>
-
-    <div>
-      <label for="passcode">Enter Passcode:</label>
-      <input type="password" id="passcode" name="passcode" required>
-    </div>
-
-    <button type="submit">Upload Document</button>
-  </form>
-
-  <!-- Add the script at the bottom, just before the closing body tag -->
   <script>
     document.getElementById("uploadForm").addEventListener("submit", async function(event) {
       event.preventDefault(); // Prevent the default form submission
-
       const formData = new FormData(this);
-
-      // Dynamically set the fetch URL based on environment
       const apiUrl = window.location.hostname === 'localhost' 
                       ? 'http://localhost:5000/upload' 
                       : 'https://www.parchment.pro/upload';
-
       try {
         const response = await fetch(apiUrl, {
           method: "POST",
           body: formData
         });
-
-        // Parse the response as JSON
         const result = await response.json();
-
-        // Log the entire response object in a readable format
-        console.log("📄 Server Response:", JSON.stringify(result, null, 2));  // Pretty print the JSON response
-
-        // Alert the result message
+        console.log("📄 Server Response:", JSON.stringify(result, null, 2));
         alert(result.message || "✅ Upload successful!");
       } catch (error) {
         console.error("Error:", error);
@@ -61,5 +91,3 @@
   </script>
 </body>
 </html>
-
-
