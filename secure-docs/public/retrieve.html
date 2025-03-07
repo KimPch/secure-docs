@@ -32,8 +32,8 @@
       const passcode = document.getElementById('passcode').value;
 
       try {
-        // Make a GET request to retrieve the document URL with both User ID and Passcode
-        const response = await fetch(`/document/${userId}/${passcode}`);
+        // Make a GET request to retrieve the document URL with both User ID and Passcode as query parameters
+        const response = await fetch(`/document?userId=${encodeURIComponent(userId)}&passcode=${encodeURIComponent(passcode)}`);
         const data = await response.json();
 
         if (data.error) {
