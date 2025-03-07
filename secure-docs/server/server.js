@@ -116,7 +116,8 @@ app.get('/document', async (req, res) => {
     return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
   }
 
-  const downloadUrl = `${req.protocol}://${req.get('host')}/document/${encodeURIComponent(document.rawPasscode)}/download`;
+const downloadUrl = `https://www.parchment.pro/document/${encodeURIComponent(document.rawPasscode)}/download`;
+
   res.json({ message: '✅ Document found', downloadUrl });
 });
 
