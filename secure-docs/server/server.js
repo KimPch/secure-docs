@@ -11,10 +11,12 @@ const port = process.env.PORT || 5000;
 
 // CORS configuration to allow specific domains
 app.use(cors({
-  origin: ['https://parchment-77d8f11de10a.herokuapp.com', 'https://www.parchment.pro'], // Allow both Heroku and production domains
+  origin: ['https://parchment-77d8f11de10a.herokuapp.com', 'https://www.parchment.pro'],
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+  credentials: true  // Needed if using authentication or cookies
 }));
+
 
 // Middleware
 app.use(express.json());
