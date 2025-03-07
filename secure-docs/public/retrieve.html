@@ -13,7 +13,7 @@
     
     <!-- Logo (using unnamed.jpg) -->
     <div class="text-center mb-6">
-      <img src="unnamed.jpg" alt="Parchment Logo" class="mx-auto w-32"> <!-- Updated with your logo file -->
+      <img src="unnamed.jpg" alt="Parchment Logo" class="mx-auto w-32">
     </div>
 
     <h2 class="text-center text-2xl font-semibold text-gray-800 mb-4">Retrieve Your Document</h2>
@@ -61,14 +61,23 @@
           body: JSON.stringify({ documentId, passcode })
         });
 
-        const result = await response.json();
-        console.log("📄 Server Response:", JSON.stringify(result, null, 2));
+        // Check if the response is JSON before parsing
+        const contentType = response.headers.get("Content-Type");
 
-        if (response.ok) {
-          // Redirect or display the retrieved document
-          window.location.href = result.fileUrl;
+        if (contentType && contentType.includes("application/json")) {
+          const result = await response.json();
+          console.log("📄 Server Response:", JSON.stringify(result, null, 2));
+
+          if (response.ok) {
+            // Redirect or display the retrieved document
+            window.location.href = result.fileUrl;
+          } else {
+            alert(result.message || "❌ Failed to retrieve document.");
+          }
         } else {
-          alert(result.message || "❌ Failed to retrieve document.");
+          const errorText = await response.text(); // If response is not JSON, log the error
+          console.error("Unexpected response format:", errorText);
+          alert("❌ Unexpected response from server.");
         }
       } catch (error) {
         console.error("Error:", error);
@@ -79,5 +88,6 @@
 
 </body>
 </html>
+
 
 
