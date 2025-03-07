@@ -40,7 +40,7 @@ const documentSchema = new mongoose.Schema({
   passcode: String
 });
 
-const Document = mongoose.model('Document', documentSchema, 'securedocs.documents');
+const Document = mongoose.model('Document', documentSchema, 'securedocs');
 // Serve Upload Page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
