@@ -24,7 +24,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // MongoDB Connection
-const myMONGO_URI = process.env.MONGO_URI || 'your-mongodb-uri-here';
+const myMONGO_URI = process.env.MONGO_URI || MONGO_URI=mongodb+srv://Kate:5201314Kate@securedocscluster.tg3bs.mongodb.net/SecureDocsCluster?retryWrites=true&w=majority&appName=SecureDocsCluster;
+ 
 
 mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB Connected'))
