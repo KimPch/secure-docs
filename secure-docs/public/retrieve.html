@@ -1,61 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retrieve Document</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retrieve Document</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h1>==Retrieve Your Document==</h1>
-    <form id="retrieveForm">
-        <label for="userId">Enter User ID:</label>
-        <input type="text" id="userId" name="userId" required />
-        <br/>
-        <label for="passcode">Enter Passcode:</label>
-        <input type="password" id="passcode" name="passcode" required />
-        <br/>
-        <button type="submit">Retrieve Document</button>
-    </form>
+<body class="flex items-center justify-center min-h-screen bg-gray-100">
 
-    <!-- Error Message Display -->
-    <div id="errorMessage" style="color: red; display: none;">❌ Invalid User ID or Passcode</div>
-
-    <!-- Download Link Display -->
-    <div id="downloadLink" style="display: none;">
-        <a id="documentLink" href="" download>Download Document</a>
+  <!-- Retrieve Form Container -->
+  <div class="bg-white shadow-lg rounded-lg p-8 w-96">
+    
+    <!-- Logo (adjust as needed) -->
+    <div class="text-center mb-6">
+      <img src="your-logo.png" alt="Parchment Logo" class="mx-auto w-32">
     </div>
 
-    <script>
-        document.getElementById('retrieveForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const userId = document.getElementById('userId').value;
-            const passcode = document.getElementById('passcode').value;
+    <h2 class="text-center text-2xl font-semibold text-gray-800 mb-4">Retrieve Your Document</h2>
 
-            try {
-                // Make a GET request with both User ID and Passcode as query parameters
-               const response = await fetch(`https://www.parchment.pro/document?userId=${encodeURIComponent(userId)}&passcode=${encodeURIComponent(passcode)}`);
+    <form id="retrieveForm" class="space-y-4">
+      
+      <div>
+        <label for="documentId" class="block text-sm font-medium text-gray-700">Document ID</label>
+        <input type="text" id="documentId" name="documentId" required class="w-full mt-1 p-2 border rounded-lg">
+      </div>
 
-                  const data = await response.json();
+      <div>
+        <label for="passcode" class="block text-sm font-medium text-gray-700">Enter Passcode</label>
+        <input type="password" id="passcode" name="passcode" required class="w-full mt-1 p-2 border rounded-lg">
+      </div>
 
-                // Handle the response from the server
-                if (data.error) {
-                    // Show error message if credentials are incorrect
-                    document.getElementById('errorMessage').style.display = 'block';
-                    document.getElementById('downloadLink').style.display = 'none';
-                } else {
-                    // Display the download link if document is found
-                    const downloadLink = document.getElementById('documentLink');
-                    downloadLink.href = data.downloadUrl; // The server sends the download URL
-                    document.getElementById('downloadLink').style.display = 'block';
-                    document.getElementById('errorMessage').style.display = 'none';
-                }
-            } catch (error) {
-                console.error('❌ Error:', error);
-                document.getElementById('errorMessage').style.display = 'block';
-                document.getElementById('downloadLink').style.display = 'none';
-            }
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+        Retrieve Document
+      </button>
+
+      <p class="text-sm text-center text-gray-500 mt-4">Need help? <a href="#" class="text-blue-600">Contact support</a></p>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById("retrieveForm").addEventListener("submit", async function(event) {
+      event.preventDefault();
+      
+      const documentId = document.getElementById("documentId").value;
+      const passcode = document.getElementById("passcode").value;
+
+      if (!documentId || !passcode) {
+        alert("❌ Please enter both Document ID and Passcode.");
+        return;
+      }
+
+      const apiUrl = window.location.hostname === 'localhost' 
+                      ? 'http://localhost:5000/retrieve' 
+                      : 'https://www.parchment.pro/retrieve';
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId, passcode })
         });
-    </script>
+
+        const result = await response.json();
+        console.log("📄 Server Response:", JSON.stringify(result, null, 2));
+
+        if (response.ok) {
+          // Redirect or display the retrieved document
+          window.location.href = result.fileUrl;
+        } else {
+          alert(result.message || "❌ Failed to retrieve document.");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("❌ Failed to retrieve document.");
+      }
+    });
+  </script>
+
 </body>
 </html>
+
 
