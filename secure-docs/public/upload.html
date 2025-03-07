@@ -4,84 +4,63 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Upload Document</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f4f4f9;
-      color: #333;
-      text-align: center;
-    }
-    .container {
-      max-width: 400px;
-      margin: 50px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-    }
-    h1 {
-      color: #0056b3;
-    }
-    label {
-      display: block;
-      margin: 10px 0 5px;
-    }
-    input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    button {
-      background: #0056b3;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #003f80;
-    }
-  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <div class="container">
-    <h1>Upload Your Document</h1>
-    <form id="uploadForm" enctype="multipart/form-data">
+<body class="flex items-center justify-center min-h-screen bg-gray-100">
+
+  <!-- Upload Form Container -->
+  <div class="bg-white shadow-lg rounded-lg p-8 w-96">
+    
+    <!-- Logo (adjust as needed) -->
+    <div class="text-center mb-6">
+      <img src="your-logo.png" alt="Parchment Logo" class="mx-auto w-32">
+    </div>
+
+    <h2 class="text-center text-2xl font-semibold text-gray-800 mb-4">Upload Your Document</h2>
+
+    <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
+      
       <div>
-        <label for="document">Choose Document:</label>
-        <input type="file" id="document" name="document" required>
+        <label for="document" class="block text-sm font-medium text-gray-700">Choose Document</label>
+        <input type="file" id="document" name="document" required class="w-full mt-1 p-2 border rounded-lg">
       </div>
+
       <div>
-        <label for="documentId">Document ID:</label>
-        <input type="text" id="documentId" name="documentId" required>
+        <label for="documentId" class="block text-sm font-medium text-gray-700">Document ID</label>
+        <input type="text" id="documentId" name="documentId" required class="w-full mt-1 p-2 border rounded-lg">
       </div>
+
       <div>
-        <label for="passcode">Enter Passcode:</label>
-        <input type="password" id="passcode" name="passcode" required>
+        <label for="passcode" class="block text-sm font-medium text-gray-700">Enter Passcode</label>
+        <input type="password" id="passcode" name="passcode" required class="w-full mt-1 p-2 border rounded-lg">
       </div>
-      <button type="submit">Upload Document</button>
+
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+        Upload Document
+      </button>
+
+      <p class="text-sm text-center text-gray-500 mt-4">Need help? <a href="#" class="text-blue-600">Contact support</a></p>
     </form>
   </div>
 
   <script>
     document.getElementById("uploadForm").addEventListener("submit", async function(event) {
-      event.preventDefault(); // Prevent the default form submission
+      event.preventDefault();
+      
       const formData = new FormData(this);
       const apiUrl = window.location.hostname === 'localhost' 
                       ? 'http://localhost:5000/upload' 
                       : 'https://www.parchment.pro/upload';
+
       try {
         const response = await fetch(apiUrl, {
           method: "POST",
           body: formData
         });
+
         const result = await response.json();
         console.log("📄 Server Response:", JSON.stringify(result, null, 2));
+
         alert(result.message || "✅ Upload successful!");
       } catch (error) {
         console.error("Error:", error);
@@ -89,5 +68,6 @@
       }
     });
   </script>
+
 </body>
 </html>
