@@ -17,15 +17,11 @@ app.use(cors({
   credentials: true  // Needed if using authentication or cookies
 }));
 
-
 // Middleware
 app.use(express.json());
 
 // Serve static files from the correct 'public' directory (one level up)
 app.use(express.static(path.join(__dirname, '..', 'public')));
-
-// Debugging logs
-console.log('🔍 MONGO_URI:', process.env.MONGO_URI);
 
 // MongoDB Connection
 const myMONGO_URI = process.env.MONGO_URI || 'your-mongodb-uri-here';
@@ -37,17 +33,26 @@ mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true 
     process.exit(1);
   });
 
-// 🏠 Serve Upload Page
+// Schema for storing documents
+const documentSchema = new mongoose.Schema({
+  documentId: { type: String, unique: true, required: true },
+  documentData: Buffer,
+  passcode: String
+});
+
+const Document = mongoose.model('Document', documentSchema);
+
+// Serve Upload Page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
 });
 
-// 📤 Serve Upload Page
+// Serve Upload Page
 app.get('/upload', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
 });
 
-// 📥 Serve Retrieve Page
+// Serve Retrieve Page
 app.get('/retrieve', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'retrieve.html'));
 });
@@ -70,16 +75,7 @@ const upload = multer({
   }
 });
 
-// Schema for storing documents
-const documentSchema = new mongoose.Schema({
-  documentId: { type: String, unique: true, required: true },
-  documentData: Buffer,
-  passcode: String
-});
-
-const Document = mongoose.model('Document', documentSchema);
-
-// 📤 Upload a document
+// Upload a document
 app.post('/upload', upload.single('document'), async (req, res) => {
   try {
     const { documentId, passcode } = req.body;
@@ -101,64 +97,46 @@ app.post('/upload', upload.single('document'), async (req, res) => {
   }
 });
 
-// 📄 Retrieve document by passcode
-app.get('/document/:passcode', async (req, res) => {
-  try {
-    const { passcode } = req.params;
-    if (!passcode) return res.status(400).json({ error: '❌ Passcode is required' });
+// Retrieve document by userId and passcode from query parameters
+app.get('/document', async (req, res) => {
+  const { userId, passcode } = req.query;
 
-    const documents = await Document.find();
-    let foundDocument = null;
-
-    for (const document of documents) {
-      if (await bcrypt.compare(passcode, document.passcode)) {
-        foundDocument = document;
-        break;
-      }
-    }
-
-    if (!foundDocument) {
-      return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
-    }
-
-    const downloadUrl = `${req.protocol}://${req.get('host')}/document/${passcode}/download`;
-    res.json({ message: '✅ Document found', downloadUrl });
-  } catch (error) {
-    console.error('❌ Error retrieving document:', error);
-    res.status(500).json({ error: '❌ Internal server error' });
+  if (!userId || !passcode) {
+    return res.status(400).json({ error: '❌ User ID and Passcode are required' });
   }
+
+  // Look for the document by userId
+  const document = await Document.findOne({ documentId: userId });
+
+  if (!document || !(await bcrypt.compare(passcode, document.passcode))) {
+    return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
+  }
+
+  const downloadUrl = `${req.protocol}://${req.get('host')}/document/${document.passcode}/download`;
+  res.json({ message: '✅ Document found', downloadUrl });
 });
 
-// 📥 Download document
+// Download document
 app.get('/document/:passcode/download', async (req, res) => {
-  try {
-    const { passcode } = req.params;
-    if (!passcode) return res.status(400).json({ error: '❌ Passcode is required' });
+  const { passcode } = req.params;
 
-    const documents = await Document.find();
-    let foundDocument = null;
+  if (!passcode) return res.status(400).json({ error: '❌ Passcode is required' });
 
-    for (const document of documents) {
-      if (await bcrypt.compare(passcode, document.passcode)) {
-        foundDocument = document;
-        break;
-      }
-    }
+  // Find document using passcode
+  const document = await Document.findOne({ passcode });
 
-    if (!foundDocument) {
-      return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
-    }
-
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${foundDocument.documentId || 'document'}"`);
-    res.send(foundDocument.documentData);
-  } catch (error) {
-    console.error('❌ Error downloading document:', error);
-    res.status(500).json({ error: '❌ Internal server error' });
+  if (!document) {
+    return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
   }
+
+  // Set headers for downloading the document
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${document.documentId || 'document'}"`);
+  res.send(document.documentData);
 });
 
 // Start the server
 app.listen(port, () => {
   console.log(`🚀 Server running at http://localhost:${port}`);
 });
+
