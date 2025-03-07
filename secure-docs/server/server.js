@@ -9,10 +9,24 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-// ✅ Fixed MongoDB URI
+// CORS configuration
+app.use(cors({
+  origin: ['https://parchment-77d8f11de10a.herokuapp.com', 'https://www.parchment.pro'],
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+  credentials: true  
+}));
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static files
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// MongoDB Connection
 const myMONGO_URI = process.env.MONGO_URI || 'mongodb+srv://Kate:5201314Kate@securedocscluster.tg3bs.mongodb.net/SecureDocsCluster?retryWrites=true&w=majority&appName=SecureDocsCluster';
 
-// Connect to MongoDB
 mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => {
@@ -20,33 +34,21 @@ mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true 
     process.exit(1);
   });
 
-// CORS Configuration
-app.use(cors({
-  origin: ['https://parchment-77d8f11de10a.herokuapp.com', 'https://www.parchment.pro'],
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
-  credentials: true
-}));
-
-// Middleware
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
-
 // Schema for storing documents
 const documentSchema = new mongoose.Schema({
   documentId: { type: String, unique: true, required: true },
   documentData: Buffer,
-  passcode: String
+  passcode: String,      // Stores hashed passcode
+  rawPasscode: String    // Stores raw passcode for lookup
 });
 
-const Document = mongoose.model('Document', documentSchema, 'securedocs.documents');
+const Document = mongoose.model('Document', documentSchema, 'securedocs');
 
 // Serve Upload Page
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
 });
 
-// Serve Upload Page
 app.get('/upload', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
 });
@@ -60,12 +62,9 @@ app.get('/retrieve', (req, res) => {
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, 
   fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -80,12 +79,19 @@ app.post('/upload', upload.single('document'), async (req, res) => {
     const { documentId, passcode } = req.body;
     if (!req.file) return res.status(400).json({ error: '❌ No file uploaded' });
 
+    // Check for duplicate documentId
+    const existingDocument = await Document.findOne({ documentId });
+    if (existingDocument) {
+      return res.status(400).json({ error: '⚠️ Document with this ID already exists. Use a unique ID.' });
+    }
+
     const hashedPasscode = await bcrypt.hash(passcode, 10);
 
     const newDocument = new Document({
       documentId,
       documentData: req.file.buffer,
-      passcode: hashedPasscode
+      passcode: hashedPasscode,
+      rawPasscode: passcode  // Store raw passcode for lookup
     });
 
     await newDocument.save();
@@ -96,7 +102,7 @@ app.post('/upload', upload.single('document'), async (req, res) => {
   }
 });
 
-// Retrieve document by userId and passcode from query parameters
+// Retrieve document by userId and passcode
 app.get('/document', async (req, res) => {
   const { userId, passcode } = req.query;
 
@@ -104,14 +110,13 @@ app.get('/document', async (req, res) => {
     return res.status(400).json({ error: '❌ User ID and Passcode are required' });
   }
 
-  // Look for the document by userId
   const document = await Document.findOne({ documentId: userId });
 
-  if (!document || !(await bcrypt.compare(passcode, document.passcode))) {
+  if (!document || document.rawPasscode !== passcode) {
     return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
   }
 
-  const downloadUrl = `${req.protocol}://${req.get('host')}/document/${document.passcode}/download`;
+  const downloadUrl = `${req.protocol}://${req.get('host')}/document/${encodeURIComponent(document.rawPasscode)}/download`;
   res.json({ message: '✅ Document found', downloadUrl });
 });
 
@@ -119,16 +124,12 @@ app.get('/document', async (req, res) => {
 app.get('/document/:passcode/download', async (req, res) => {
   const { passcode } = req.params;
 
-  if (!passcode) return res.status(400).json({ error: '❌ Passcode is required' });
-
-  // Find document using passcode
-  const document = await Document.findOne({ passcode });
+  const document = await Document.findOne({ rawPasscode: passcode });
 
   if (!document) {
     return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
   }
 
-  // Set headers for downloading the document
   res.setHeader('Content-Type', 'application/octet-stream');
   res.setHeader('Content-Disposition', `attachment; filename="${document.documentId || 'document'}"`);
   res.send(document.documentData);
