@@ -27,56 +27,36 @@
     <button type="submit">Upload Document</button>
   </form>
 
-  <!-- Add the script at the bottom, before the closing body tag -->
+  <!-- Add the script at the bottom, just before the closing body tag -->
   <script>
-    // Wait for the DOM to be fully loaded before running the script
-    document.addEventListener("DOMContentLoaded", function() {
-      console.log("✅ JavaScript Loaded!");
+    document.getElementById("uploadForm").addEventListener("submit", async function(event) {
+      event.preventDefault(); // Prevent the default form submission
 
-      const form = document.getElementById("uploadForm");
+      const formData = new FormData(this);
 
-      // Check if the form exists
-      if (!form) {
-        console.error("❌ Form not found!");
-        return;
+      // Dynamically set the fetch URL based on environment
+      const apiUrl = window.location.hostname === 'localhost' 
+                      ? 'http://localhost:5000/upload' 
+                      : 'https://www.parchment.pro/upload';
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          body: formData
+        });
+
+        // Parse the response as JSON
+        const result = await response.json();
+
+        // Log the entire response object in a readable format
+        console.log("📄 Server Response:", JSON.stringify(result, null, 2));  // Pretty print the JSON response
+
+        // Alert the result message
+        alert(result.message || "✅ Upload successful!");
+      } catch (error) {
+        console.error("Error:", error);
+        alert("❌ Failed to upload document.");
       }
-
-      // Attach the submit event listener to the form
-      form.addEventListener("submit", async function(event) {
-        event.preventDefault();  // Prevent the default form submission
-        console.log("📤 Upload Form Submitted!");
-
-        const fileInput = document.getElementById("document");
-        if (!fileInput.files.length) {
-          console.error("❌ No file selected!");
-          alert("❌ Please select a file before uploading.");
-          return;
-        }
-
-        const formData = new FormData();
-        formData.append("document", fileInput.files[0]); 
-        formData.append("documentId", document.getElementById("documentId").value);
-        formData.append("passcode", document.getElementById("passcode").value);
-
-        const apiUrl = window.location.hostname === 'localhost' 
-                       ? 'http://localhost:5000/upload' 
-                       : 'https://www.parchment.pro/upload';
-
-        try {
-          console.log("📡 Sending upload request...");
-          const response = await fetch(apiUrl, {
-            method: "POST",
-            body: formData
-          });
-
-          const result = await response.json();
-          console.log("📄 Server Response:", result);
-          alert(result.message || "✅ Upload successful!");
-        } catch (error) {
-          console.error("❌ Fetch Error:", error);
-          alert("❌ Failed to upload document.");
-        }
-      });
     });
   </script>
 </body>
