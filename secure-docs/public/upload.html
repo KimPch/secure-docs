@@ -1,74 +1,159 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Upload Document</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="flex items-center justify-center min-h-screen bg-gray-100">
+const express = require('express');
+const mongoose = require('mongoose');
+const multer = require('multer');
+const cors = require('cors');
+const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
+const path = require('path');
+require('dotenv').config();
 
-  <!-- Upload Form Container -->
-  <div class="bg-white shadow-lg rounded-lg p-8 w-96">
-    
-    <!-- Logo (using unnamed.jpg) -->
-    <div class="text-center mb-6">
-      <img src="unnamed.jpg" alt="Parchment Logo" class="mx-auto w-32"> <!-- Updated with your logo file -->
-    </div>
+const app = express();
+const port = process.env.PORT || 5000;
 
-    <h2 class="text-center text-2xl font-semibold text-gray-800 mb-4">Upload Your Document</h2>
+// CORS configuration
+app.use(cors({
+  origin: ['https://parchment-77d8f11de10a.herokuapp.com', 'https://www.parchment.pro'],
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin'],
+  credentials: true  
+}));
 
-    <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
-      
-      <div>
-        <label for="document" class="block text-sm font-medium text-gray-700">Choose Document</label>
-        <input type="file" id="document" name="document" required class="w-full mt-1 p-2 border rounded-lg">
-      </div>
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-      <div>
-        <label for="documentId" class="block text-sm font-medium text-gray-700">Document ID</label>
-        <input type="text" id="documentId" name="documentId" required class="w-full mt-1 p-2 border rounded-lg">
-      </div>
+// Serve static files
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
-      <div>
-        <label for="passcode" class="block text-sm font-medium text-gray-700">Enter Passcode</label>
-        <input type="password" id="passcode" name="passcode" required class="w-full mt-1 p-2 border rounded-lg">
-      </div>
+// MongoDB Connection
+const myMONGO_URI = process.env.MONGO_URI || 'mongodb+srv://Kate:5201314Kate@securedocscluster.tg3bs.mongodb.net/SecureDocsCluster?retryWrites=true&w=majority&appName=SecureDocsCluster';
 
-      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-        Upload Document
-      </button>
+mongoose.connect(myMONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => {
+    console.error('❌ MongoDB Connection Error:', err);
+    process.exit(1);
+  });
 
-      <p class="text-sm text-center text-gray-500 mt-4">Need help? <a href="#" class="text-blue-600">Contact support</a></p>
-    </form>
-  </div>
+// Schema for storing documents
+const documentSchema = new mongoose.Schema({
+  documentId: { type: String, unique: true, required: true },
+  documentData: Buffer,
+  passcode: String,      // Stores hashed passcode
+  rawPasscode: String    // Stores raw passcode for lookup (if needed for validation)
+});
 
-  <script>
-    document.getElementById("uploadForm").addEventListener("submit", async function(event) {
-      event.preventDefault();
-      
-      const formData = new FormData(this);
-      const apiUrl = window.location.hostname === 'localhost' 
-                      ? 'http://localhost:5000/upload' 
-                      : 'https://www.parchment.pro/upload';
+const Document = mongoose.model('Document', documentSchema, 'securedocs');
 
-      try {
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          body: formData
-        });
+// Email sending setup (using Gmail or your chosen email provider)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,   // Your email
+    pass: process.env.EMAIL_PASSWORD // Your email password
+  }
+});
 
-        const result = await response.json();
-        console.log("📄 Server Response:", JSON.stringify(result, null, 2));
+// Upload a document
+app.post('/upload', upload.single('document'), async (req, res) => {
+  try {
+    const { documentId, passcode, email } = req.body; // Assuming email is provided
+    if (!req.file) return res.status(400).json({ error: '❌ No file uploaded' });
 
-        alert(result.message || "✅ Upload successful!");
-      } catch (error) {
-        console.error("Error:", error);
-        alert("❌ Failed to upload document.");
-      }
+    // Check for duplicate documentId
+    const existingDocument = await Document.findOne({ documentId });
+    if (existingDocument) {
+      return res.status(400).json({ error: '⚠️ Document with this ID already exists. Use a unique ID.' });
+    }
+
+    const hashedPasscode = await bcrypt.hash(passcode, 10);
+
+    const newDocument = new Document({
+      documentId,
+      documentData: req.file.buffer,
+      passcode: hashedPasscode,
+      rawPasscode: passcode  // Store raw passcode for lookup
     });
-  </script>
 
-</body>
-</html>
+    await newDocument.save();
+
+    // Generate the download URL
+    const downloadUrl = `https://www.parchment.pro/document/${encodeURIComponent(newDocument.rawPasscode)}/download`;
+
+    // Send email with the download link
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,  // Recipient email address
+      subject: 'Your Document is Ready to Download',
+      html: `
+        <html>
+          <head>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                background-color: #f9f9f9;
+                color: #333;
+                margin: 0;
+                padding: 20px;
+              }
+              .container {
+                background-color: #ffffff;
+                border-radius: 8px;
+                padding: 30px;
+                max-width: 600px;
+                margin: 0 auto;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+              }
+              .button {
+                display: inline-block;
+                padding: 12px 24px;
+                background-color: #4CAF50;
+                color: #fff;
+                text-decoration: none;
+                border-radius: 5px;
+                font-size: 16px;
+                font-weight: bold;
+              }
+              .footer {
+                text-align: center;
+                font-size: 12px;
+                margin-top: 20px;
+                color: #888;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h2 style="color: #333;">Hello,</h2>
+              <p>Your document has been successfully uploaded. Click the button below to access your document:</p>
+              <a href="${downloadUrl}" class="button">Access the Document</a>
+              <div class="footer">
+                <p>If you have any issues, feel free to <a href="mailto:support@parchment.pro" style="color: #4CAF50;">contact support</a>.</p>
+                <p>&copy; 2025 Parchment. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log('Error sending email:', error);
+        return res.status(500).json({ error: '❌ Error sending email' });
+      }
+      console.log('Email sent:', info.response);
+    });
+
+    res.json({ message: '✅ Document uploaded successfully', downloadUrl });
+  } catch (error) {
+    console.error('❌ Error uploading document:', error);
+    res.status(500).json({ error: '❌ Internal server error' });
+  }
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`🚀 Server running at http://localhost:${port}`);
+});
 
