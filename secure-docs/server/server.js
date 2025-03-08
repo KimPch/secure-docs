@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const nodemailer = require('nodemailer');
 const path = require('path');
 require('dotenv').config();
 
@@ -40,24 +39,44 @@ const documentSchema = new mongoose.Schema({
   documentId: { type: String, unique: true, required: true },
   documentData: Buffer,
   passcode: String,      // Stores hashed passcode
-  rawPasscode: String    // Stores raw passcode for lookup (if needed for validation)
+  rawPasscode: String    // Stores raw passcode for lookup
 });
 
 const Document = mongoose.model('Document', documentSchema, 'securedocs');
 
-// Email sending setup (using Gmail or your chosen email provider)
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,   // Your email
-    pass: process.env.EMAIL_PASSWORD // Your email password
+// Serve Upload Page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
+});
+
+app.get('/upload', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
+});
+
+// Serve Retrieve Page
+app.get('/retrieve', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'retrieve.html'));
+});
+
+// Multer setup for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, 
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('❌ Invalid file type. Only PDF and DOCX files are allowed.'));
+    }
   }
 });
 
 // Upload a document
 app.post('/upload', upload.single('document'), async (req, res) => {
   try {
-    const { documentId, passcode, email } = req.body; // Assuming email is provided
+    const { documentId, passcode } = req.body;
     if (!req.file) return res.status(400).json({ error: '❌ No file uploaded' });
 
     // Check for duplicate documentId
@@ -76,80 +95,45 @@ app.post('/upload', upload.single('document'), async (req, res) => {
     });
 
     await newDocument.save();
-
-    // Generate the download URL
-    const downloadUrl = `https://www.parchment.pro/document/${encodeURIComponent(newDocument.rawPasscode)}/download`;
-
-    // Send email with the download link
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,  // kateshi1088@gmail.com
-      subject: 'Access the Document',
-      html: `
-        <html>
-          <head>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                background-color: #f9f9f9;
-                color: #333;
-                margin: 0;
-                padding: 20px;
-              }
-              .container {
-                background-color: #ffffff;
-                border-radius: 8px;
-                padding: 30px;
-                max-width: 600px;
-                margin: 0 auto;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-              }
-              .button {
-                display: inline-block;
-                padding: 12px 24px;
-                background-color: #4CAF50;
-                color: #fff;
-                text-decoration: none;
-                border-radius: 5px;
-                font-size: 16px;
-                font-weight: bold;
-              }
-              .footer {
-                text-align: center;
-                font-size: 12px;
-                margin-top: 20px;
-                color: #888;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h2 style="color: #333;">Hello,</h2>
-              <p>Your document has been successfully uploaded. Click the button below to access your document:</p>
-              <a href="${downloadUrl}" class="button">Access the Document</a>
-              <div class="footer">
-                <p>If you have any issues, feel free to <a href="mailto:support@parchment.pro" style="color: #4CAF50;">contact support</a>.</p>
-                <p>&copy; 2025 Parchment. All rights reserved.</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `
-    };
-
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.log('Error sending email:', error);
-        return res.status(500).json({ error: '❌ Error sending email' });
-      }
-      console.log('Email sent:', info.response);
-    });
-
-    res.json({ message: '✅ Document uploaded successfully', downloadUrl });
+    res.json({ message: '✅ Document uploaded successfully' });
   } catch (error) {
     console.error('❌ Error uploading document:', error);
     res.status(500).json({ error: '❌ Internal server error' });
   }
+});
+
+// Retrieve document by userId and passcode
+app.get('/document', async (req, res) => {
+  const { userId, passcode } = req.query;
+
+  if (!userId || !passcode) {
+    return res.status(400).json({ error: '❌ User ID and Passcode are required' });
+  }
+
+  const document = await Document.findOne({ documentId: userId });
+
+  if (!document || document.rawPasscode !== passcode) {
+    return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
+  }
+
+const downloadUrl = `https://www.parchment.pro/document/${encodeURIComponent(document.rawPasscode)}/download`;
+
+  res.json({ message: '✅ Document found', downloadUrl });
+});
+
+// Download document
+app.get('/document/:passcode/download', async (req, res) => {
+  const { passcode } = req.params;
+
+  const document = await Document.findOne({ rawPasscode: passcode });
+
+  if (!document) {
+    return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
+  }
+
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${document.documentId || 'document'}"`);
+  res.send(document.documentData);
 });
 
 // Start the server
