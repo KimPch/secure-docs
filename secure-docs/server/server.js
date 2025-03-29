@@ -4,6 +4,7 @@ const multer = require('multer');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const path = require('path');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -44,19 +45,10 @@ const documentSchema = new mongoose.Schema({
 
 const Document = mongoose.model('Document', documentSchema, 'securedocs');
 
-// Serve Upload Page
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
-});
-
-app.get('/upload', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'upload.html'));
-});
-
-// Serve Retrieve Page
-app.get('/retrieve', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'retrieve.html'));
-});
+// Serve Upload and Retrieve Pages
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'upload.html')));
+app.get('/upload', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'upload.html')));
+app.get('/retrieve', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'retrieve.html')));
 
 // Multer setup for file uploads
 const storage = multer.memoryStorage();
@@ -72,6 +64,29 @@ const upload = multer({
     }
   }
 });
+
+// Nodemailer configuration
+const transporter = nodemailer.createTransport({
+  service: 'Outlook365',  // You can change this to 'gmail' or another email service if needed
+  auth: {
+    user: 'your-email@example.com',  // Replace with your actual email
+    pass: 'your-email-password',    // Use your email password or app-specific password if 2FA is on
+  },
+});
+
+async function sendDownloadLink(email, downloadUrl) {
+  try {
+    await transporter.sendMail({
+      from: 'your-email@example.com',  // Sender's email
+      to: email,
+      subject: 'Your Secure Document Download Link',
+      text: `Click here to download your document: ${downloadUrl}`,
+    });
+    console.log('✅ Email sent successfully');
+  } catch (error) {
+    console.error('❌ Error sending email:', error);
+  }
+}
 
 // Upload a document
 app.post('/upload', upload.single('document'), async (req, res) => {
@@ -91,7 +106,7 @@ app.post('/upload', upload.single('document'), async (req, res) => {
       documentId,
       documentData: req.file.buffer,
       passcode: hashedPasscode,
-      rawPasscode: passcode  // Store raw passcode for lookup
+      rawPasscode: passcode
     });
 
     await newDocument.save();
@@ -102,12 +117,12 @@ app.post('/upload', upload.single('document'), async (req, res) => {
   }
 });
 
-// Retrieve document by userId and passcode
+// Retrieve document and send download link via email
 app.get('/document', async (req, res) => {
-  const { userId, passcode } = req.query;
+  const { userId, passcode, email } = req.query;
 
-  if (!userId || !passcode) {
-    return res.status(400).json({ error: '❌ User ID and Passcode are required' });
+  if (!userId || !passcode || !email) {
+    return res.status(400).json({ error: '❌ User ID, Passcode, and Email are required' });
   }
 
   const document = await Document.findOne({ documentId: userId });
@@ -116,9 +131,12 @@ app.get('/document', async (req, res) => {
     return res.status(404).json({ error: '❌ Document not found or passcode is incorrect' });
   }
 
-const downloadUrl = `https://www.parchment.pro/document/${encodeURIComponent(document.rawPasscode)}/download`;
+  const downloadUrl = `https://www.parchment.pro/document/${encodeURIComponent(document.rawPasscode)}/download`;
 
-  res.json({ message: '✅ Document found', downloadUrl });
+  // Send the download link via email
+  await sendDownloadLink(email, downloadUrl);
+
+  res.json({ message: '✅ Document found, and download link has been sent to your email' });
 });
 
 // Download document
