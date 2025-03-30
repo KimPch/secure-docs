@@ -69,8 +69,8 @@ const upload = multer({
 const transporter = nodemailer.createTransport({
   service: 'Outlook365',  // You can change this to 'gmail' or another email service if needed
   auth: {
-    user: 'your-email@example.com',  // Replace with your actual email
-    pass: 'your-email-password',    // Use your email password or app-specific password if 2FA is on
+    user: 'kateshi1088@gmail.com',  // Replace with your actual email
+    pass: '5290219002@Qiao',    // Use your email password or app-specific password if 2FA is on
   },
 });
 
