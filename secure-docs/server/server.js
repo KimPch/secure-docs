@@ -74,13 +74,20 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Function to send email with the styled link
 async function sendDownloadLink(email, downloadUrl) {
   try {
     await transporter.sendMail({
       from: 'your-email@example.com',  // Sender's email
       to: email,
       subject: 'Your Secure Document Download Link',
-      text: `Click here to download your document: ${downloadUrl}`,
+      html: `
+        <p>Hi,</p>
+        <p>You requested to download your document. Click the link below to download:</p>
+        <a href="${downloadUrl}" style="color: blue; text-decoration: none; font-size: 16px;">Download the document</a>
+        <p>Best regards,</p>
+        <p>Your Secure Docs Team</p>
+      `, // HTML content with the blue-colored "Download the document" link
     });
     console.log('✅ Email sent successfully');
   } catch (error) {
